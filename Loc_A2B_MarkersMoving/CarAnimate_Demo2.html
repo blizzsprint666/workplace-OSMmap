@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CarAnimate_Demo2(灰)</title>
+<link rel="stylesheet" href="./css_lib/map.css">
+
+<!--  jquery csdn -->
+<script src="https://code.jquery.com/jquery-3.6.0.js" integrity="sha256-H+K7U5CnXl1h5ywQfKtSj8PCmoN9aaq30gDh27Xc0jk=" crossorigin="anonymous"></script>
+<!-- 初始化leaflet地圖 --> 
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+<!-- 引用的 Marker(Marker Default: Blue) -->
+<script src="js/leaflet.awesome-markers.js"></script>  
+
+
+<!-- 移動路徑plugin -->  
+<script src="http://ewoken.github.io/Leaflet.MovingMarker/MovingMarker.js"></script> 
+
+
+</head>
+<body>
+    <!-- 建立地圖 : 定位中心，可以縮放-->
+    <div id="map"></div>
+</body>
+
+<script>
+    function successGPS(position){
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        center =[lat,lng];
+    };
+    function errorGPS(){
+        window.alert('定位錯誤! 目前無法判斷您的所在位置,無法使用此功能')
+    }
+    if (navigator.geolocation){
+        // geolocation is available
+        navigator.geolocation.getCurrentPosition(successGPS,errorGPS) 
+    } else {
+        // geolocation is not available
+        window.alert('您的裝置不具備GPS，不支援位置定位的功能')
+    }
+    </script>
+
+<!-- 放到Leaf.js建立地圖 -->
+<script>
+    const durationDef = 2000;//1秒 → 點對點移動所需時間(預設值)
+    let map = L.map(document.getElementById('map'), {
+   
+    center: [25.041554246758864, 121.53398036956789],//地圖呈現的中間點
+    zoom: 16, 
+    crs:L.CRS.EPSG3857,
+    fullscreenControl: false,
+    attributionControl: true, 
+    zoomControl: true , 
+    });
+    
+   //map圖磚  
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);  
+    L.control.scale().addTo(map);
+
+    //建立起始點/終點的標點
+  //   var Map_Show = [
+  //   ['name': '起始點', lat:25.041554246758864,lng:121.53398036956789],
+  //   ['name': '終點', lat:25.0418925,lng:121.52]];
+  //   for(var k =0; Map_Show.length>k; k++){
+  //    L.marker([Map_Show[k].lat, Map_Show[k].lng],{ icon: purpleIcon}).addTo(map)
+  //    // 點擊跳出
+  //      .bindPopup('<h1>' + Map_Show[i].name + '</h1>')
+  //  }
+
+    //建立移動中的標點(灰色)
+    let greyIcon = new L.icon({  
+     iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-grey.png',
+     shadowURL:'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+     iconSize: [25,42],
+     iconAnchor:[12,41],
+     popupAnchor:[1,-34],
+     shadowSize:[41,41]
+   });
+
+   //根據傳入的arr去畫出移動圖
+    function Move(arr) {
+     let durationArray=[];//初始化點位間移動的時間
+        arr.forEach(element=>durationArray.push(durationDef));
+     const marker = L.Marker.movingMarker(
+        arr //要移動哪些點位
+        ,durationArray  //每個點位間移動所需時間
+        , { autostart: true}  //是否自動播放
+        , { loop: true} //跑完是否自動迴圈
+        , { icon: orangeIcon}  //新加入變更
+      ).addTo(map);
+     L.polyline(arr, { color: 'red' }).addTo(map); //用arr去畫出多邊形
+     map.fitBounds(arr);
+  
+      // 移動結束時觸發事件
+      marker.on('end', function () {
+        marker.bindPopup('<p>結束囉！</p>', { closeOnClick: false }).openPopup();
+      });
+}
+</script>
+
+
+<script>
+/*Demo 2 點擊 開始/暫停，點擊起始標點後，才開始跑地圖座標*/
+const route = [
+              [25.041554246758864, 121.53398036956789]  //起點
+              //…可以自行加入中間點
+               , [25.0418925, 121.52] //終點
+              ];
+const marker = L.Marker.movingMarker(route, [9000],{ icon: greyIcon}).addTo(map);
+L.polyline(route).addTo(map); //繪出要跑的軌跡
+marker.once('click', function () {
+  marker.start();
+  marker.on('click', function () {
+    if (marker.isRunning()) {
+      marker.pause();
+    } else {
+      marker.start();
+    }
+  });
+});
+</script>
+</html>
